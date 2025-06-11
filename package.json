@@ -1,5 +1,6 @@
 {
   "name": "multimodal-chatbot",
+  "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,16 +10,26 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chroma-core/default-embed": "^0.1.8",
+    "@google/generative-ai": "^0.24.1",
+    "@xenova/transformers": "^2.17.2",
+    "chromadb": "^3.0.3",
+    "dotenv": "^16.5.0",
+    "next": "15.3.3",
+    "openai": "^5.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.3"
+    "tesseract.js": "^4.1.4",
+    "tesseract.js-core": "^6.0.0",
+    "tesseract.js-node": "^0.1.0",
+    "vercel-ai": "^0.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
