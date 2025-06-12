@@ -13,7 +13,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hello! Ask me anything or upload a file (image or PDF).'
+      content: 'Hello! Ask me anything .'
     }
   ])
 
