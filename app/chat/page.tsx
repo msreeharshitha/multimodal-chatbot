@@ -2,26 +2,22 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-// Message interface to define chat roles
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
 export default function ChatPage() {
-  // Store messages between user and assistant
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hello! Ask me anything .'
+      content: 'Hello! Ask me anything.'
     }
   ])
-
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Send message or file to backend
   const sendMessage = async () => {
     if (!input.trim() && !file) return
 
@@ -50,31 +46,35 @@ export default function ChatPage() {
     }
   }
 
-  // Auto scroll to last message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-800">
-      <header className="bg-white shadow-md p-4 text-center text-2xl font-semibold text-blue-700">
-        Igerba Education Bot
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5 text-center shadow-md">
+        <h1 className="text-3xl font-bold tracking-wide">🤖 Igerba Education Bot</h1>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-2xl mx-auto space-y-5">
-          {messages.map((msg, index) => (
-            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      {/* Chat messages */}
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+        <div className="max-w-2xl mx-auto space-y-4">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
               <div
-                className={`rounded-xl shadow-sm px-5 py-4 max-w-[80%] whitespace-pre-wrap ${
+                className={`rounded-2xl px-5 py-4 max-w-[80%] shadow-md whitespace-pre-wrap text-sm sm:text-base ${
                   msg.role === 'user'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white rounded-tr-none'
                     : msg.role === 'assistant'
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'bg-yellow-50 text-yellow-700'
+                    ? 'bg-white text-gray-800 rounded-tl-none'
+                    : 'bg-yellow-100 text-yellow-800'
                 }`}
               >
-                <div className="text-sm font-semibold mb-1">
+                <div className="font-semibold mb-1 text-xs uppercase tracking-wide">
                   {msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Bot' : 'System'}
                 </div>
                 {msg.content}
@@ -85,19 +85,24 @@ export default function ChatPage() {
         </div>
       </main>
 
-      <footer className="bg-white border-t p-4">
+      {/* Footer */}
+      <footer className="bg-white p-4 border-t shadow-inner">
         <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Type your message here..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Type your message..."
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
           />
 
-          <label htmlFor="file-upload" className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-600 rounded-lg cursor-pointer hover:bg-blue-200 transition">
-            Upload File
+          {/* Upload Button */}
+          <label
+            htmlFor="file-upload"
+            className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg hover:bg-blue-200 transition cursor-pointer"
+          >
+            📎 Upload
           </label>
           <input
             id="file-upload"
@@ -107,24 +112,27 @@ export default function ChatPage() {
             className="hidden"
           />
 
+          {/* Send Button */}
           <button
             onClick={sendMessage}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
           >
-            Send
+            Send ➤
           </button>
 
+          {/* Clear Button */}
           <button
             onClick={() => setMessages([])}
             className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
           >
-            Clear Chat
+            ❌ Clear
           </button>
         </div>
 
+        {/* File name preview */}
         {file && (
           <div className="max-w-2xl mx-auto mt-2 text-sm text-gray-600 text-center">
-            Selected File: <span className="font-medium">{file.name}</span>
+            📁 <span className="font-medium">{file.name}</span>
           </div>
         )}
       </footer>
