@@ -36,24 +36,24 @@ export async function POST(req: Request) {
     const messages: any[] = JSON.parse(messagesStr || "[]");
     let extractedText = "";
 
-    // ✅ OCR handling if image uploaded
+    // OCR handling if image uploaded
     if (image) {
       try {
         const buffer = Buffer.from(await image.arrayBuffer());
         const tempPath = path.join(os.tmpdir(), `${Date.now()}-${image.name}`);
         await fs.writeFile(tempPath, buffer);
 
-        const worker = await createWorker({
-          workerPath: require.resolve("tesseract.js/src/worker-script/node/index.js"),
-          corePath: require.resolve("tesseract.js-core/tesseract-core.wasm.js"),
-          langPath: path.resolve("node_modules", "tesseract.js-core", "lang"),
-        });
+        // NO custom path — works in Node.js
+        const worker = await createWorker();
 
         await worker.load();
         await worker.loadLanguage("eng");
         await worker.initialize("eng");
 
-        const { data: { text } } = await worker.recognize(tempPath);
+        const {
+          data: { text },
+        } = await worker.recognize(tempPath);
+
         await worker.terminate();
         extractedText = text.trim();
         await fs.unlink(tempPath);
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Tool calling
+    // 🛠 Tool calling
     const toolCall = handleToolCalling(messages[messages.length - 1]?.content || "");
     if (toolCall) {
       return NextResponse.json({
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       });
     }
 
-    //  Fake RAG context retrieval
+    //  RAG: context based on keywords
     function retrieveRelevantDocs(msgs: any[]): string {
       const docs = [
         "How to use the chatbot",
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
         "Common image use cases",
         "Helpful doc about multimodal AI",
       ];
-      const last = msgs[msgs.length - 1]?.content?.toLowerCase() || "";
+      const last = msgs[messages.length - 1]?.content?.toLowerCase() || "";
       return docs.filter((d) => d.toLowerCase().includes(last)).join("\n");
     }
 
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       content: `Use this knowledge:\n${context}`,
     });
 
-    // GROQ call
+    // Call to Groq API
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "GROQ API key missing" }, { status: 500 });
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     if (!groqRes.ok) {
       console.error("Groq API error:", await groqRes.text());
       return NextResponse.json({
-        reply: { role: "assistant", content: "❌ Groq API error. Try again later." },
+        reply: { role: "assistant", content: "Groq API error. Try again later." },
       });
     }
 

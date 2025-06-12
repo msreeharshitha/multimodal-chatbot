@@ -2,31 +2,36 @@
 
 import { useState, useRef, useEffect } from 'react'
 
+// Message interface to define chat roles
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([{
-    role: 'assistant',
-    content: 'Hello! Ask me anything or upload an image.'
-  }])
+  // Store messages between user and assistant
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: 'Hello! Ask me anything or upload a file (image or PDF).'
+    }
+  ])
 
   const [input, setInput] = useState('')
-  const [image, setImage] = useState<File | null>(null)
+  const [file, setFile] = useState<File | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Send message or file to backend
   const sendMessage = async () => {
-    if (!input.trim() && !image) return
+    if (!input.trim() && !file) return
 
     const formData = new FormData()
     formData.append('messages', JSON.stringify([...messages, { role: 'user', content: input }]))
-    if (image) formData.append('image', image)
+    if (file) formData.append('file', file)
 
-    setMessages(prev => [...prev, { role: 'user', content: input || '[Image uploaded]' }])
+    setMessages(prev => [...prev, { role: 'user', content: input || '[File uploaded]' }])
     setInput('')
-    setImage(null)
+    setFile(null)
 
     const res = await fetch('/api/chat', {
       method: 'POST',
@@ -45,6 +50,7 @@ export default function ChatPage() {
     }
   }
 
+  // Auto scroll to last message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -52,7 +58,7 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-gray-800">
       <header className="bg-white shadow-md p-4 text-center text-2xl font-semibold text-blue-700">
-        🤖 Igerba Education Bot
+        Igerba Education Bot
       </header>
 
       <main className="flex-1 overflow-y-auto p-6">
@@ -90,14 +96,14 @@ export default function ChatPage() {
             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          <label htmlFor="image-upload" className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-600 rounded-lg cursor-pointer hover:bg-blue-200 transition">
-            Upload Image
+          <label htmlFor="file-upload" className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-600 rounded-lg cursor-pointer hover:bg-blue-200 transition">
+            Upload File
           </label>
           <input
-            id="image-upload"
+            id="file-upload"
             type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files?.[0] || null)}
+            accept="image/*,.pdf"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="hidden"
           />
 
@@ -107,11 +113,18 @@ export default function ChatPage() {
           >
             Send
           </button>
+
+          <button
+            onClick={() => setMessages([])}
+            className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
+          >
+            Clear Chat
+          </button>
         </div>
 
-        {image && (
-          <div className="max-w-2xl mx-auto mt-2 text-sm text-gray-500 text-center">
-            Selected Image: <span className="font-medium">{image.name}</span>
+        {file && (
+          <div className="max-w-2xl mx-auto mt-2 text-sm text-gray-600 text-center">
+            Selected File: <span className="font-medium">{file.name}</span>
           </div>
         )}
       </footer>
