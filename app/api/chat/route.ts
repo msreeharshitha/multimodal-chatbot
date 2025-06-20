@@ -9,10 +9,17 @@ function handleToolCalling(message: string): any | null {
   const lowerMsg = message.toLowerCase();
 
   if (lowerMsg.includes("time")) {
+    const timeIST = new Date().toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    });
+    const dateIST = new Date().toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    });
+
     return {
       role: "function",
       name: "getCurrentTime",
-      content: `🕒 The current time is ${new Date().toLocaleTimeString()}`,
+      content: `🕒 The current IST time is ${timeIST} on ${dateIST}.`,
     };
   }
 
@@ -37,7 +44,6 @@ function retrieveRelevantDocs(msgs: any[]): string {
   ];
   const last = msgs[msgs.length - 1]?.content?.toLowerCase() || "";
 
-  // Match if any keyword from doc title exists in message
   return docs
     .filter((doc) =>
       doc.toLowerCase().split(" ").some((keyword) => last.includes(keyword))
@@ -58,7 +64,6 @@ export async function POST(req: Request) {
     // 🖼️ OCR: Image processing if uploaded
     if (image) {
       try {
-        // Validate file type
         if (!image.type.startsWith("image/")) {
           return NextResponse.json(
             { error: "Only image uploads are supported." },
@@ -81,7 +86,7 @@ export async function POST(req: Request) {
         } = await worker.recognize(tempPath);
 
         await worker.terminate();
-        await fs.unlink(tempPath); // Clean up temp file
+        await fs.unlink(tempPath);
 
         extractedText = text.trim();
       } catch (ocrError) {
@@ -97,7 +102,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 🔧 Tool calling (if triggered by last message)
+    // 🔧 Tool calling
     const toolCall = handleToolCalling(messages[messages.length - 1]?.content || "");
     if (toolCall) {
       return NextResponse.json({
