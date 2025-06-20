@@ -4,7 +4,7 @@ import path from "path";
 import os from "os";
 import { createWorker } from "tesseract.js";
 
-// Function to simulate tool calling
+// 🛠️ Tool-calling handler
 function handleToolCalling(message: string): any | null {
   const lowerMsg = message.toLowerCase();
 
@@ -27,6 +27,25 @@ function handleToolCalling(message: string): any | null {
   return null;
 }
 
+// 🔍 Simple RAG-style document fetcher
+function retrieveRelevantDocs(msgs: any[]): string {
+  const docs = [
+    "How to use the chatbot",
+    "Groq API Guide",
+    "Common image use cases",
+    "Helpful doc about multimodal AI",
+  ];
+  const last = msgs[msgs.length - 1]?.content?.toLowerCase() || "";
+
+  // Match if any keyword from doc title exists in message
+  return docs
+    .filter((doc) =>
+      doc.toLowerCase().split(" ").some((keyword) => last.includes(keyword))
+    )
+    .join("\n");
+}
+
+// 🧠 Main route handler
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -36,14 +55,21 @@ export async function POST(req: Request) {
     const messages: any[] = JSON.parse(messagesStr || "[]");
     let extractedText = "";
 
-    // OCR handling if image uploaded
+    // 🖼️ OCR: Image processing if uploaded
     if (image) {
       try {
+        // Validate file type
+        if (!image.type.startsWith("image/")) {
+          return NextResponse.json(
+            { error: "Only image uploads are supported." },
+            { status: 400 }
+          );
+        }
+
         const buffer = Buffer.from(await image.arrayBuffer());
         const tempPath = path.join(os.tmpdir(), `${Date.now()}-${image.name}`);
         await fs.writeFile(tempPath, buffer);
 
-        // NO custom path — works in Node.js
         const worker = await createWorker();
 
         await worker.load();
@@ -55,8 +81,9 @@ export async function POST(req: Request) {
         } = await worker.recognize(tempPath);
 
         await worker.terminate();
+        await fs.unlink(tempPath); // Clean up temp file
+
         extractedText = text.trim();
-        await fs.unlink(tempPath);
       } catch (ocrError) {
         console.error("OCR Error:", ocrError);
         extractedText = "";
@@ -70,7 +97,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 🛠 Tool calling
+    // 🔧 Tool calling (if triggered by last message)
     const toolCall = handleToolCalling(messages[messages.length - 1]?.content || "");
     if (toolCall) {
       return NextResponse.json({
@@ -78,28 +105,20 @@ export async function POST(req: Request) {
       });
     }
 
-    //  RAG: context based on keywords
-    function retrieveRelevantDocs(msgs: any[]): string {
-      const docs = [
-        "How to use the chatbot",
-        "Groq API Guide",
-        "Common image use cases",
-        "Helpful doc about multimodal AI",
-      ];
-      const last = msgs[messages.length - 1]?.content?.toLowerCase() || "";
-      return docs.filter((d) => d.toLowerCase().includes(last)).join("\n");
-    }
-
+    // 📚 Add system context using RAG
     const context = retrieveRelevantDocs(messages);
     messages.unshift({
       role: "system",
       content: `Use this knowledge:\n${context}`,
     });
 
-    // Call to Groq API
+    // 🔑 GROQ API call
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "GROQ API key missing" }, { status: 500 });
+      return NextResponse.json(
+        { error: "GROQ API key missing" },
+        { status: 500 }
+      );
     }
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -116,10 +135,17 @@ export async function POST(req: Request) {
     });
 
     if (!groqRes.ok) {
-      console.error("Groq API error:", await groqRes.text());
-      return NextResponse.json({
-        reply: { role: "assistant", content: "Groq API error. Try again later." },
-      });
+      const errorText = await groqRes.text();
+      console.error("Groq API error:", errorText);
+      return NextResponse.json(
+        {
+          reply: {
+            role: "assistant",
+            content: "⚠️ Groq API error. Please try again later.",
+          },
+        },
+        { status: 500 }
+      );
     }
 
     const groqData = await groqRes.json();
@@ -127,7 +153,7 @@ export async function POST(req: Request) {
 
     if (!replyText) {
       console.error("No reply content:", groqData);
-      throw new Error("Empty reply");
+      throw new Error("Empty reply from model.");
     }
 
     return NextResponse.json({
@@ -135,6 +161,9 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("Server Error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
