@@ -19,6 +19,7 @@ export default function ChatPage() {
   const [file, setFile] = useState<File | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedInput, setEditedInput] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const sendMessage = async () => {
@@ -63,29 +64,42 @@ export default function ChatPage() {
   }, [messages]);
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-tr from-blue-50 via-white to-purple-50 text-gray-800">
-      <aside className="w-64 bg-white shadow-lg p-4 border-r">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-tr from-blue-50 via-white to-purple-50 text-gray-800">
+      {/* Sidebar */}
+      <aside
+        className={`md:w-64 w-full bg-white shadow-lg p-4 border-r transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? "block" : "hidden md:block"
+        }`}
+      >
         <h2 className="text-lg font-bold mb-4">🕘 Chat History</h2>
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-sm max-h-[70vh] overflow-y-auto">
           {messages
             .filter((m) => m.role === "user")
             .map((msg, idx) => (
               <li
                 key={idx}
-                className="p-2 bg-gray-50 rounded hover:bg-blue-100 truncate cursor-pointer"
+                className="p-2 bg-gray-100 rounded hover:bg-blue-200 cursor-pointer transition truncate"
+                title={msg.content}
               >
-                {msg.content.slice(0, 30)}
+                {msg.content.slice(0, 40)}
               </li>
             ))}
         </ul>
       </aside>
 
+      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         <header className="bg-gradient-to-r from-blue-700 to-purple-600 text-white p-6 text-center shadow-lg">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-wide">
             🤖 Igerba Education Chatbot
           </h1>
           <p className="text-sm opacity-90 mt-1">AI-powered academic assistant</p>
+          <button
+            className="md:hidden mt-4 bg-white text-blue-600 px-4 py-2 rounded shadow"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+          >
+            📋 Toggle Chat History
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">

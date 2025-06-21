@@ -42,11 +42,12 @@ function retrieveRelevantDocs(msgs: any[]): string {
     "Common image use cases",
     "Helpful doc about multimodal AI",
   ];
-  const last = msgs[msgs.length - 1]?.content?.toLowerCase() || "";
+
+  const lastMsg = msgs[msgs.length - 1]?.content?.toLowerCase() || "";
 
   return docs
     .filter((doc) =>
-      doc.toLowerCase().split(" ").some((keyword) => last.includes(keyword))
+      doc.toLowerCase().split(" ").some((keyword) => lastMsg.includes(keyword))
     )
     .join("\n");
 }
@@ -56,12 +57,12 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const messagesStr = formData.get("messages") as string;
-    const image = formData.get("image") as File | null;
+    const image = formData.get("file") as File | null;
 
     const messages: any[] = JSON.parse(messagesStr || "[]");
     let extractedText = "";
 
-    // 🖼️ OCR: Image processing if uploaded
+    // 🖼️ OCR Handling
     if (image) {
       try {
         if (!image.type.startsWith("image/")) {
@@ -76,7 +77,6 @@ export async function POST(req: Request) {
         await fs.writeFile(tempPath, buffer);
 
         const worker = await createWorker();
-
         await worker.load();
         await worker.loadLanguage("eng");
         await worker.initialize("eng");
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 🔧 Tool calling
+    // 🧩 Tool Calling
     const toolCall = handleToolCalling(messages[messages.length - 1]?.content || "");
     if (toolCall) {
       return NextResponse.json({
@@ -117,13 +117,10 @@ export async function POST(req: Request) {
       content: `Use this knowledge:\n${context}`,
     });
 
-    // 🔑 GROQ API call
+    // 🔑 GROQ API Integration
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "GROQ API key missing" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "GROQ API key missing" }, { status: 500 });
     }
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -166,9 +163,6 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("Server Error:", err);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
